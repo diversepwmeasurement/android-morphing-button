@@ -1,55 +1,53 @@
-name: Changelog vs Release
-
-on:
-  push:
-    tags:
-      - '*'
-
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build Changelog
-        id: github_release
-        uses: mikepenz/release-changelog-builder-action@main
-        with:
-          configuration: ".github/changelog-configuration.json"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install JDK ${{ matrix.java_version }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'adopt'
-          java-version: 11
-
-      - name: Install Android SDK
-        uses: malinskiy/action-android/install-sdk@release/0.1.2
-
-      - name: Build project
-        run: ./gradlew clean build
-        env:
-          VERSION: ${{ github.ref }}
-
-      - name: Get the version
-        id: tagger
-        uses: jimschubert/query-tag-action@v2
-        with:
-          skip-unshallow: 'true'
-          abbrev: false
-          commit-ish: HEAD
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{steps.tagger.outputs.tag}}
-          name: ${{steps.tagger.outputs.tag}}
-          body: ${{steps.github_release.outputs.changelog}}
-          files: touchview/build/outputs/aar/touchview-release.aar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      id: github_release
+      name: Build Changelog
+      uses: mikepenz/release-changelog-builder-action@main
+      with:
+        configuration: .github/changelog-configuration.json
+    - continue-on-error: true
+      name: Install JDK ${{ matrix.java_version }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: adopt
+        java-version: 11
+    - continue-on-error: true
+      name: Install Android SDK
+      uses: malinskiy/action-android/install-sdk@release/0.1.2
+    - continue-on-error: true
+      env:
+        VERSION: ${{ github.ref }}
+      name: Build project
+      run: ./gradlew clean build
+    - continue-on-error: true
+      id: tagger
+      name: Get the version
+      uses: jimschubert/query-tag-action@v2
+      with:
+        abbrev: false
+        commit-ish: HEAD
+        skip-unshallow: 'true'
+    - continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        body: ${{steps.github_release.outputs.changelog}}
+        files: touchview/build/outputs/aar/touchview-release.aar
+        name: ${{steps.tagger.outputs.tag}}
+        tag_name: ${{steps.tagger.outputs.tag}}
+name: Changelog vs Release
+on:
+  repository_dispatch:
+    types: trigger-ga___Android-CI-release.yml
